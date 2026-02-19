@@ -52,5 +52,38 @@ Before you begin, ensure you have the following:
 ### 1. Clone the repository
 
 ```bash
-git clone <your-repository-url>
-cd <your-project-directory>
+git clone https://github.com/devansh-kc/cursor-web-clone.git
+cd cursor-web-clone
+```
+### 2.Install dependencies
+
+``` bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+### 3. Set up environment variables
+Create a .env.local file in the root directory:
+```bash
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=<your-clerk-publishable-key>
+CLERK_SECRET_KEY=<your-clerk-secret-key>
+
+# Convex
+NEXT_PUBLIC_CONVEX_URL=<your-convex-deployment-url>
+
+# AI Providers
+GEMINI_API_KEY=<your-google-gemini-api-key>
+ANTHROPIC_API_KEY=<your-anthropic-api-key>  # For Claude Sonnet 4
+FIREcrawl_API_KEY=<your-firecrawl-api-key>
+
+# Inngest
+INNGEST_EVENT_KEY=<your-inngest-event-key>
+INNGEST_SIGNING_KEY=<your-inngest-signing-key>
+
+# Sentry
+SENTRY_DSN=<your-sentry-dsn>
+NEXT_PUBLIC_SENTRY_DSN=<your-sentry-dsn>
+```
