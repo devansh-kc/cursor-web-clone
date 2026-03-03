@@ -36,3 +36,55 @@ export function useCreateProject() {
     },
   );
 }
+
+export function useGetProjectById(id: Id<"projects">) {
+  return useQuery(api.projects.getProjectById, { id });
+}
+
+export function useRenameProjectById(projectId: Id<"projects">) {
+  return useMutation(api.projects.renameProjectById).withOptimisticUpdate(
+    (localStore, args) => {
+      const existingSpecificProjects = localStore.getQuery(
+        api.projects.getProjectById,
+        {
+          id: projectId,
+        },
+      );
+
+      if (
+        existingSpecificProjects !== undefined &&
+        existingSpecificProjects !== null
+      ) {
+        localStore.setQuery(
+          api.projects.getProjectById,
+          { id: args.id },
+          {
+            ...existingSpecificProjects,
+            name: args.name,
+            updatedAt: Date.now(),
+          },
+        );
+      }
+
+      const existingProjects = localStore.getQuery(api.projects.get);
+
+      if (existingProjects !== undefined) {
+        const now = Date.now();
+        localStore.setQuery(
+          api.projects.get,
+          {},
+          existingProjects?.map((project) => {
+            if (project._id === args.id) {
+              return {
+                ...project,
+                name: args.name,
+                updatedAt: now,
+              };
+            }
+            return project;
+          }),
+        );
+      }
+    },
+  );
+}

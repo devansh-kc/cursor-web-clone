@@ -19,7 +19,7 @@ interface ProjectListProps {
   onViewAll: () => void;
 }
 
-function ProjectItem({ data }: { data: Doc<"projects"> }) {
+function ProjectItem({ data }: Readonly<{ data: Doc<"projects"> }>) {
   return (
     <Link
       href={`/projects/${data._id}`}

@@ -49,3 +49,46 @@ export const get = query({
       .collect();
   },
 });
+
+export const getProjectById = query({
+  args: {
+    id: convexServerValues.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await verifyAuth(ctx);
+    if (!identity) {
+      return [];
+    }
+    const projectById = await ctx.db.get("projects", args.id);
+    if (!projectById) {
+      throw new Error("Project not found");
+    }
+    if (projectById.ownerId !== identity.subject) {
+      throw new Error("Unauthorized to access this project");
+    }
+    return projectById;
+  },
+});
+export const renameProjectById = mutation({
+  args: {
+    id: convexServerValues.id("projects"),
+    name: convexServerValues.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await verifyAuth(ctx);
+    if (!identity) {
+      return [];
+    }
+    const projectById = await ctx.db.get("projects", args.id);
+    if (!projectById) {
+      throw new Error("Project not found");
+    }
+    if (projectById.ownerId !== identity.subject) {
+      throw new Error("Unauthorized to access this project");
+    }
+    await ctx.db.patch("projects", args.id, {
+      name: args.name,
+      updatedAt: Date.now(),
+    });
+  },
+});
