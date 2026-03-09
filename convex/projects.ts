@@ -57,7 +57,7 @@ export const getProjectById = query({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
     if (!identity) {
-      return [];
+      return null;
     }
     const projectById = await ctx.db.get("projects", args.id);
     if (!projectById) {
