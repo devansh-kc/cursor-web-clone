@@ -1,6 +1,7 @@
 import { v as convexServerValues } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { verifyAuth } from "./auth";
+import { Id } from "./_generated/dataModel";
 export const create = mutation({
   args: {
     name: convexServerValues.string(),
@@ -67,7 +68,7 @@ export const getFileById = query({
     return fileById;
   },
 });
-export const getFolderContents = mutation({
+export const getFolderContents = query({
   args: {
     projectId: convexServerValues.id("projects"),
     parentId: convexServerValues.optional(convexServerValues.id("files")),
@@ -75,7 +76,7 @@ export const getFolderContents = mutation({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
     if (!identity) {
-      return [];
+      return null;
     }
     const projectById = await ctx.db.get("projects", args.projectId);
     if (!projectById) {
@@ -241,7 +242,7 @@ export const renameFile = mutation({
   },
 });
 
-export const deleteRecursively = mutation({
+export const deleteFile = mutation({
   args: {
     fileId: convexServerValues.id("files"),
   },
@@ -261,29 +262,35 @@ export const deleteRecursively = mutation({
     if (projectById?.ownerId !== identity.subject) {
       throw new Error("Unauthorized to access this file");
     }
+    const deleteRecursive = async (fileId: Id<"files">) => {
+      const item = await ctx.db.get("files", fileId);
 
-    if (fileById.type === "folder") {
-      const children = await ctx.db
-        .query("files")
-        .withIndex("by_project_parent", (userData) =>
-          userData
-            .eq("projectId", fileById.projectId)
-            .eq("parentId", args.fileId),
-        )
-        .collect();
-      for (const child of children) {
-        await deleteRecursively(child._id);
-      }
-      // Delete storage file if it exists
-      if (fileById.storageId) {
-        await ctx.storage.delete(fileById.storageId);
+      if (!item) {
+        return;
       }
 
-      // Delete the file/folder itself
-      await ctx.db.delete("files", args.fileId);
-    }
+      if (fileById.type === "folder") {
+        const children = await ctx.db
+          .query("files")
+          .withIndex("by_project_parent", (userData) =>
+            userData
+              .eq("projectId", fileById.projectId)
+              .eq("parentId", args.fileId),
+          )
+          .collect();
+        for (const child of children) {
+          await deleteRecursive(child._id);
+        }
+        // Delete storage file if it exists
+        if (fileById.storageId) {
+          await ctx.storage.delete(fileById.storageId);
+        }
 
-    await deleteRecursively(args.fileId);
+        // Delete the file/folder itself
+        await ctx.db.delete("files", args.fileId);
+      }
+    };
+    await deleteRecursive(args.fileId);
 
     await ctx.db.patch("projects", fileById.projectId, {
       updatedAt: Date.now(),

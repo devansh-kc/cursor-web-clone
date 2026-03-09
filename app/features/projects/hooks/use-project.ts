@@ -38,7 +38,7 @@ export function useCreateProject() {
 }
 
 export function useGetProjectById(id: Id<"projects">) {
-  return useQuery(api.projects.getProjectById, { id });
+  return useQuery(api.projects.getProjectById, { id: id });
 }
 
 export function useRenameProjectById(projectId: Id<"projects">) {

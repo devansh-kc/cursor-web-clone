@@ -12,9 +12,16 @@ import {
 import React, { useState } from "react";
 import { useGetProjectById, useProject } from "../../hooks/use-project";
 import { Button } from "@/components/ui/button";
-import { useCreateFile, useCreateFolder } from "../../hooks/use-files";
+import {
+  useCreateFile,
+  useCreateFolder,
+  useFolderContents,
+  // UseFolderContents,
+} from "../../hooks/use-files";
 import CreateInput from "./create-input";
 import { cn } from "@/lib/utils";
+import { LoadingRow } from "./loading-row";
+import Tree from "./Tree";
 
 function FileExplorer({ projectId }: { projectId: Id<"projects"> }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,6 +29,10 @@ function FileExplorer({ projectId }: { projectId: Id<"projects"> }) {
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const project = useGetProjectById(projectId);
   const createFile = useCreateFile();
+  const rootFiles = useFolderContents({
+    projectId,
+    enable: isOpen,
+  });
   const createFolder = useCreateFolder();
   const handleCreate = (name: string) => {
     setCreating(null);
@@ -96,6 +107,7 @@ function FileExplorer({ projectId }: { projectId: Id<"projects"> }) {
         </div>
         {isOpen && (
           <>
+            {rootFiles === undefined && <LoadingRow level={0} />}
             {creating && (
               <CreateInput
                 type={creating}
@@ -104,6 +116,14 @@ function FileExplorer({ projectId }: { projectId: Id<"projects"> }) {
                 onCancel={() => setCreating(null)}
               />
             )}
+            {rootFiles?.map((item) => (
+              <Tree
+                key={`${item._id}-${collapseKey}`}
+                item={item}
+                level={0}
+                projectId={projectId}
+              />
+            ))}{" "}
           </>
         )}
       </ScrollArea>
