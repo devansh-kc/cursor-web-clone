@@ -224,20 +224,24 @@ export const renameFile = mutation({
     const exitsingSiblingFileOrFolder = siblingFile.find(
       (siblingFile) =>
         siblingFile.name === args.newName &&
-        siblingFile._id !== args.id &&
-        siblingFile.type === fileById.type,
+        siblingFile.type === fileById.type &&
+        siblingFile._id !== args.id,
     );
     if (exitsingSiblingFileOrFolder) {
-      throw new Error("File or folder already exists in this location");
+      throw new Error(
+        `A ${fileById.type} with this name already exists in this location`,
+      );
     }
+    const now = Date.now();
 
-    await ctx.db.patch("projects", fileById?.projectId, {
-      updatedAt: Date.now(),
+    // Update the file's name
+    await ctx.db.patch("files", args.id, {
+      name: args.newName,
+      updatedAt: now,
     });
 
-    return ctx.db.patch("files", args.id, {
-      name: args.newName,
-      updatedAt: Date.now(),
+    await ctx.db.patch("projects", fileById.projectId, {
+      updatedAt: now,
     });
   },
 });
@@ -287,8 +291,8 @@ export const deleteFile = mutation({
         }
 
         // Delete the file/folder itself
-        await ctx.db.delete("files", args.fileId);
       }
+      await ctx.db.delete("files", args.fileId);
     };
     await deleteRecursive(args.fileId);
 
