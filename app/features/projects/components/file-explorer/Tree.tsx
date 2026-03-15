@@ -15,6 +15,7 @@ import { LoadingRow } from "./loading-row";
 import { getItemPadding } from "./constants";
 import CreateInput from "./create-input";
 import RenameInput from "./rename-input";
+import { useEditor } from "../../hooks/use-editor";
 
 function Tree({
   item,
@@ -32,6 +33,7 @@ function Tree({
   const deleteFile = useDeleteFile();
   const createFile = useCreateFile();
   const createFolder = useCreateFolder();
+  const { openFile, closeTab, activeTabId } = useEditor(projectId);
   const folderContentData = useFolderContents({
     projectId,
     parentId: item._id,
@@ -80,6 +82,7 @@ function Tree({
   );
   if (item.type === "file") {
     const fileName = item?.name;
+    const isActive = activeTabId === item._id;
 
     if (isRenaming) {
       return (
@@ -97,11 +100,17 @@ function Tree({
       <TreeItemWrapper
         item={item}
         level={level}
+        isActive={isActive}
         // projectId={projectId}
         onRename={() => setIsRenaming(true)}
-        onDelete={() => deleteFile({ fileId: item._id })}
+        onDelete={() => {
+          closeTab(item._id);
+          deleteFile({ fileId: item._id });
+        }}
         onCreateFile={() => setCreating("file")}
         onCreateFolder={() => setCreating("folder")}
+        onClick={() => openFile(item?._id, { pinned: false })}
+        onDoubleClick={() => openFile(item?._id, { pinned: true })}
       >
         <FileIcon fileName={fileName} className="size-4" autoAssign />
         <span className="truncate text-sm">{fileName}</span>
