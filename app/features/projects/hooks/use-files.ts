@@ -2,10 +2,13 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 
-// export function useFiles(projectId: string) {
-//   const files = useQuery(api.files., { projectId });
-//   return files;
-// }
+export function useFile(fileId: Id<"files">) {
+  return useQuery(api.files.getFileById, fileId ? { id: fileId } : "skip");
+}
+
+export function useFilePath(fileId: Id<"files">) {
+  return useQuery(api.files.getFilePath, fileId ? { fileId: fileId } : "skip");
+}
 
 export function useFolderContents({
   projectId,

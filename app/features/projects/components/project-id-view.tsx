@@ -5,6 +5,7 @@ import { Allotment } from "allotment";
 import React, { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import FileExplorer from "./file-explorer/file-explorer";
+import EditorView from "../../editor/components/editor-view/editor-view";
 
 const Tab = ({
   label,
@@ -78,7 +79,7 @@ function ProjectIdView({ projectId }: { projectId: Id<"projects"> }) {
               maxSize={MAX_SIDEBAR_WIDTH}
               preferredSize={DEFAULT_MAIN_SIZE}
             >
-              <p>Main View</p>
+              <EditorView projectId={projectId} />
             </Allotment.Pane>
           </Allotment>
         </div>
