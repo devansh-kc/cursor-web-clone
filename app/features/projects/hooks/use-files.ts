@@ -37,6 +37,9 @@ export function useCreateFile() {
 export function useCreateFolder() {
   return useMutation(api.files.createFolder);
 }
+export function useUpdateFile() {
+  return useMutation(api.files.updateFile);
+}
 export function useRenameFile() {
   return useMutation(api.files.renameFile);
 }

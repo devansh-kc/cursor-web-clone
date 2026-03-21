@@ -13,8 +13,10 @@ import { customSetup } from "../extentions/custom-setup";
 
 interface Props {
   fileName: string;
+  initialValue: string;
+  onChange: (value: string) => void;
 }
-function CodeEditor({ fileName }: Props) {
+function CodeEditor({ fileName, initialValue, onChange }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const languageExtension = useMemo(
@@ -25,16 +27,7 @@ function CodeEditor({ fileName }: Props) {
   useEffect(() => {
     if (editorRef.current && !viewRef.current) {
       viewRef.current = new EditorView({
-        doc: `const Counter = () => {
-                const [value, setValue] = useState(0);
-
-                const onIncrease = setValue((value) => value +1);
-
-                return (
-                    <div> |
-                        <button onClick={onIncrease}>{value}</button>
-                    </div>
-            );`,
+        doc: initialValue,
         parent: editorRef.current,
         extensions: [
           oneDark,
@@ -45,6 +38,11 @@ function CodeEditor({ fileName }: Props) {
           minimap(),
           minimapTheme,
           indentationMarkers(),
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              onChange(update.state.doc.toString());
+            }
+          }),
         ],
       });
     }
@@ -53,7 +51,7 @@ function CodeEditor({ fileName }: Props) {
       viewRef.current?.destroy();
       viewRef.current = null;
     };
-  }, []);
+  }, [languageExtension]);
   return <div className="size-full pl-4 bg-background" ref={editorRef} />;
 }
 
