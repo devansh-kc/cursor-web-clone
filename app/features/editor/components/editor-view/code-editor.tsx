@@ -10,6 +10,9 @@ import { minimap, minimapTheme } from "../extentions/minimap";
 import { indentationMarkers } from "@replit/codemirror-indentation-markers";
 import { foldGutter } from "@codemirror/language";
 import { customSetup } from "../extentions/custom-setup";
+import { suggestion } from "../extentions/suggestions";
+import { quickEdit } from "../extentions/quick-edit";
+import { SelectionTooltip } from "../extentions/suggestions/selection-tooltip";
 
 interface Props {
   fileName: string;
@@ -17,7 +20,7 @@ interface Props {
   onChange: (value: string) => void;
 }
 function CodeEditor({ fileName, initialValue, onChange }: Props) {
-  const editorRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
   const languageExtension = useMemo(
     () => getLanguageExtension(fileName),
@@ -34,10 +37,13 @@ function CodeEditor({ fileName, initialValue, onChange }: Props) {
           customTheme,
           customSetup,
           languageExtension,
-          keymap.of([indentWithTab]),
           minimap(),
           minimapTheme,
           indentationMarkers(),
+          suggestion(fileName ?? "Implement this"),
+          quickEdit(fileName),
+          SelectionTooltip(),
+          keymap.of([indentWithTab]),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChange(update.state.doc.toString());

@@ -1,5 +1,5 @@
 import { Id } from "@/convex/_generated/dataModel";
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import TopNavigation from "./top-navigation";
 import { useEditor } from "../../hooks/use-editor";
 import FileBreadCrumbs from "./file-bread-crumbs";
@@ -18,6 +18,14 @@ function EditorView({ projectId }: { projectId: Id<"projects"> }) {
   const DEBOUNCE_DELAY = 1600;
   const isBinaryFile = activeFile && activeFile?.storageId;
   const isActiveFileText = activeFile && !activeFile?.storageId;
+
+  useEffect(() => {
+    return () => {
+      if (timeOutRef.current) {
+        clearTimeout(timeOutRef.current);
+      }
+    };
+  }, [activeFile]);
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center">
