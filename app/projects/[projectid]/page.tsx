@@ -1,4 +1,3 @@
-import ProjectIdLayout from "@/app/features/projects/components/project-id-layout";
 import ProjectIdView from "@/app/features/projects/components/project-id-view";
 import { Id } from "@/convex/_generated/dataModel";
 

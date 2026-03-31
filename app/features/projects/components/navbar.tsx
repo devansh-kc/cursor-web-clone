@@ -64,7 +64,7 @@ function Navbar({ projectId }: { projectId: Id<"projects"> }) {
     }
   }
   return (
-    <nav className="flex justify-between items-center gap-x-2 p-2 bg-sidebar border-b ">
+    <nav className="flex justify-between items-center gap-x-2 p-2 bg-sidebar border-b  ">
       <div className="flex items-center gap-x-2">
         <Breadcrumb>
           <BreadcrumbList className="gap-x-0!">
