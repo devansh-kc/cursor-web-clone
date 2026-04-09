@@ -4,14 +4,15 @@ import Navbar from "./navbar";
 import { Id } from "@/convex/_generated/dataModel";
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
+import ConversationSidebar from "../../conversations/components/conversation-sidebar";
 
 function ProjectIdLayout({
   children,
   projectId,
-}: {
+}: Readonly<{
   children: React.ReactNode;
   projectId: Id<"projects">;
-}) {
+}>) {
   const MIN_SIDEBAR_WIDTH = 200;
   const MAX_SIDEBAR_WIDTH = 800;
   const DEFAULT_CONVERSATION_SIDEBAR_WIDTH = 400;
@@ -26,15 +27,15 @@ function ProjectIdLayout({
           className="flex-1"
           defaultSizes={[DEFAULT_CONVERSATION_SIDEBAR_WIDTH, DEFAULT_MAIN_SIZE]}
         >
+          <Allotment.Pane>{children}</Allotment.Pane>
           <Allotment.Pane
             snap
             minSize={MIN_SIDEBAR_WIDTH}
             maxSize={MAX_SIDEBAR_WIDTH}
             preferredSize={DEFAULT_CONVERSATION_SIDEBAR_WIDTH}
           >
-            <div>Conversation Sidebar</div>{" "}
+            <ConversationSidebar projectId={projectId} />
           </Allotment.Pane>
-          <Allotment.Pane>{children}</Allotment.Pane>
         </Allotment>
       </div>
     </div>

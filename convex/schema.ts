@@ -39,4 +39,26 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_parent", ["parentId"])
     .index("by_project_parent", ["projectId", "parentId"]),
+  conversations: defineTable({
+    projectId: convexServerValues.id("projects"),
+    title: convexServerValues.string(),
+    updatedAt: convexServerValues.number(),
+  }).index("by_project", ["projectId"]),
+  messages: defineTable({
+    conversationId: convexServerValues.id("conversations"),
+    projectId: convexServerValues.id("projects"),
+    role: convexServerValues.union(
+      convexServerValues.literal("user"),
+      convexServerValues.literal("assistant"),
+    ),
+    content: convexServerValues.string(),
+
+    status: convexServerValues.union(
+      convexServerValues.literal("processing"),
+      convexServerValues.literal("completed"),
+      convexServerValues.literal("cancelled"),
+    ),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_project_status", ["projectId", "status"]),
 });
