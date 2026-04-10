@@ -45,7 +45,7 @@ export const createMessage = mutation({
       conversationId: args.conversationId,
       projectId: args?.projectId,
       role: args.role,
-      status: args.status ?? "cancelled",
+      status: args.status ?? "completed",
     });
 
     await ctx.db.patch(args.conversationId, {
@@ -68,5 +68,41 @@ export const updateMessageContent = mutation({
       content: args.content,
       status: "completed" as const,
     });
+  },
+});
+export const updateMessageStatus = mutation({
+  args: {
+    internalKey: v.string(),
+    messageId: v.id("messages"),
+    status: v.optional(
+      v.union(
+        v.literal("processing"),
+        v.literal("completed"),
+        v.literal("cancelled"),
+      ),
+    ),
+  },
+  handler: async (ctx, args) => {
+    validateInternalKey(args.internalKey);
+
+    await ctx.db.patch(args.messageId, {
+      status: args.status,
+    });
+  },
+});
+
+export const getProcessingMessages = query({
+  args: {
+    internalKey: v.string(),
+    projectId: v.id("projects"),
+  },
+  async handler(ctx, args) {
+    validateInternalKey(args.internalKey);
+    return await ctx.db
+      .query("messages")
+      .withIndex("by_project_status", (query) =>
+        query.eq("projectId", args.projectId).eq("status", "processing"),
+      )
+      .collect();
   },
 });

@@ -17,7 +17,7 @@ export const processMessage = inngest.createFunction(
     cancelOn: [
       {
         event: "message/cancel",
-        match: "data.messageId",
+        match: "event.data.messageId==async.data.messageId",
       },
     ],
     onFailure: async ({ event, step }) => {
@@ -48,7 +48,7 @@ export const processMessage = inngest.createFunction(
     if (!internalKey) {
       throw new NonRetriableError("Internal key not configured");
     }
-    await step.sleep("waiting for ai-processing", "5s");
+    await step.sleep("waiting for ai-processing", "20s");
 
     await step.run("update-assistant-message", async () => {
       await convex.mutation(api.system.updateMessageContent, {

@@ -66,8 +66,24 @@ function ConversationSidebar({
     (msg) => msg.status === "processing",
   );
 
+  const handleCancel = async () => {
+    try {
+      await apiFetcher({
+        url: "/api/cancel",
+        timeout: 10000,
+        options: {
+          method: "POST",
+          body: JSON.stringify({ projectId: projectId }),
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to cancel message");
+    }
+  };
   const handleSubmit = async (message: PromptInputMessage) => {
     if (isProcessing && !message.text) {
+      await handleCancel();
       setInput("");
       return;
     }
@@ -98,6 +114,7 @@ function ConversationSidebar({
     }
     setInput("");
   };
+
   return (
     <div className="flex flex-col h-full  bg-sidebar">
       <div className="h-8.75 flex items-center justify-between border-b ">
@@ -119,34 +136,40 @@ function ConversationSidebar({
       </div>
       <Conversation className="flex-1">
         <ConversationContent>
-          {conversationMessages?.map((messages, messageIndex) => (
-            <Message key={messages?._id} from={messages?.role}>
-              <MessageContent>
-                {messages?.status === "processing" ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <LoaderIcon className="size-4 animate-spin" />{" "}
-                    <span>Thinking...</span>
-                  </div>
-                ) : (
-                  <MessageResponse>{messages?.content}</MessageResponse>
-                )}
-              </MessageContent>
-              {messages?.role === "assistant" &&
-                messages?.status === "completed" &&
-                messageIndex === (conversationMessages?.length ?? 0) - 1 && (
-                  <MessageActions>
-                    <MessageAction label="copy">
-                      <CopyIcon
+          {conversationMessages?.map((messages, messageIndex) => {
+            return (
+              <Message key={messages?._id} from={messages?.role}>
+                <MessageContent>
+                  {messages.status === "processing" ? (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <LoaderIcon className="size-4 animate-spin" />
+                      <span>Thinking...</span>
+                    </div>
+                  ) : messages.status === "cancelled" ? (
+                    <span className="text-muted-foreground italic">
+                      Request cancelled
+                    </span>
+                  ) : (
+                    <MessageResponse>{messages.content}</MessageResponse>
+                  )}
+                </MessageContent>
+                {messages?.role === "assistant" &&
+                  messages?.status === "completed" &&
+                  messageIndex === (conversationMessages?.length ?? 0) - 1 && (
+                    <MessageActions>
+                      <MessageAction
                         onClick={() =>
                           navigator?.clipboard.writeText(messages?.content)
                         }
-                        className="size-3"
-                      />
-                    </MessageAction>
-                  </MessageActions>
-                )}
-            </Message>
-          ))}
+                        label="copy"
+                      >
+                        <CopyIcon className="size-3" />
+                      </MessageAction>
+                    </MessageActions>
+                  )}
+              </Message>
+            );
+          })}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
@@ -163,7 +186,7 @@ function ConversationSidebar({
           <PromptInputFooter>
             <PromptInputTools />
             <PromptInputSubmit
-              disabled={isProcessing || !input}
+              disabled={isProcessing ? false : !input}
               status={isProcessing ? "streaming" : "ready"}
             />
           </PromptInputFooter>
