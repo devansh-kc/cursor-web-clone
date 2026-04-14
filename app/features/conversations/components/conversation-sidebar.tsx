@@ -32,6 +32,7 @@ import {
   MessageResponse,
 } from "@/components/ai-elements/message";
 import { apiFetcher } from "@/utils/api-fetcher-function/api-fetcher-function";
+import { PastConversationDialog } from "./past-conversations-dialog";
 
 interface ConversationSidebarProps {
   projectId: Id<"projects">;
@@ -40,6 +41,7 @@ function ConversationSidebar({
   projectId,
 }: Readonly<ConversationSidebarProps>) {
   const [input, setInput] = useState<string>("");
+  const [openHistory, setOpenHistory] = useState<boolean>(false);
   const [selectedConversationId, setSelectedConversationId] =
     useState<Id<"conversations"> | null>(null);
   const createConversation = useCreateConversation();
@@ -122,7 +124,11 @@ function ConversationSidebar({
           {activeConversation?.title ?? DEFAULT_CONVERSATION_TITLE}
         </div>
         <div className="flex items-center px-1 gap-1">
-          <Button size="icon-xs" variant="highlight">
+          <Button
+            size="icon-xs"
+            variant="highlight"
+            onClick={() => setOpenHistory(true)}
+          >
             <HistoryIcon className="size-3.5" />
           </Button>
           <Button
@@ -192,6 +198,12 @@ function ConversationSidebar({
           </PromptInputFooter>
         </PromptInput>
       </div>
+      <PastConversationDialog
+        projectId={projectId}
+        open={openHistory}
+        onOpenChange={setOpenHistory}
+        onSelect={setSelectedConversationId}
+      />
     </div>
   );
 }

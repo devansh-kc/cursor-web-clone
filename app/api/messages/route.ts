@@ -40,6 +40,36 @@ export async function POST(request: Request) {
   }
 
   const projectId = conversations?.projectId;
+  // Update the message status to cancelled
+  const processingMessage = await convex.query(
+    api.system.getProcessingMessages,
+    {
+      internalKey,
+      projectId: projectId,
+    },
+  );
+
+  if (processingMessage?.length > 0) {
+    // cancel all processing request
+    const cancelIds = await Promise.all(
+      processingMessage.map(async (msg) => {
+        await inngest.send({
+          name: "message/cancel",
+          data: {
+            messageId: msg?._id,
+          },
+        });
+
+        await convex.mutation(api.system.updateMessageStatus, {
+          internalKey: internalKey,
+          messageId: msg._id,
+          status: "cancelled",
+        });
+        return msg._id;
+      }),
+    );
+  }
+
   // Create user message
   await convex.mutation(api.system.createMessage, {
     internalKey,

@@ -17,22 +17,22 @@ export const processMessage = inngest.createFunction(
     cancelOn: [
       {
         event: "message/cancel",
-        match: "event.data.messageId==async.data.messageId",
+        if: "event.data.messageId == async.data.messageId",
       },
     ],
     onFailure: async ({ event, step }) => {
-      console.log("event", event);
-      console.log("steep", step);
       const { messageId } = event.data.event.data as MessageEvent;
       const internalKey = process.env.CONVEX_INTERNAL_KEY;
 
       if (internalKey) {
-        await convex.mutation(api.system.updateMessageContent, {
-          internalKey: internalKey,
+        await step.run("update-message-on-failure", async () => {
+          await convex.mutation(api.system.updateMessageContent, {
+            internalKey: internalKey,
 
-          messageId,
-          content:
-            "My apologies, I encountered an error while processing your request. Let me know ifyou need anything else!",
+            messageId,
+            content:
+              "My apologies, I encountered an error while processing your request. Let me know ifyou need anything else!",
+          });
         });
       }
     },
@@ -48,7 +48,7 @@ export const processMessage = inngest.createFunction(
     if (!internalKey) {
       throw new NonRetriableError("Internal key not configured");
     }
-    await step.sleep("waiting for ai-processing", "20s");
+    await step.sleep("waiting for ai-processing", "50s");
 
     await step.run("update-assistant-message", async () => {
       await convex.mutation(api.system.updateMessageContent, {
