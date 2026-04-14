@@ -10,6 +10,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { formatDistanceToNow } from "@/utils/date-formator-function/date-formator";
 
 interface PastConversationDialogProps {
   projectId: Id<"projects">;
@@ -44,10 +45,15 @@ export const PastConversationDialog = ({
           {conversations?.map((conversation) => (
             <CommandItem
               key={conversation._id}
-              value={conversation.title}
+              value={conversation._id}
               onSelect={() => handleSelect(conversation._id)}
             >
-              {conversation.title}
+              <div className="flex flex-col gap-0.5">
+                <span>{conversation.title}</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(conversation._creationTime)}
+                </span>
+              </div>
             </CommandItem>
           ))}
         </CommandGroup>
