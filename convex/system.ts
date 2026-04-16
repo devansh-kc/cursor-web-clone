@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 const validateInternalKey = (key: string) => {
   const internalKey = process.env.CONVEX_INTERNAL_KEY;
@@ -321,7 +322,7 @@ export const createBulkfolders = mutation({
         results?.push({
           name: folder.name,
           fileId: existingFolder._id,
-          error: "F already exists",
+          error: "Folder already exists",
         });
       }
 
@@ -338,5 +339,90 @@ export const createBulkfolders = mutation({
       });
     }
     return results;
+  },
+});
+
+export const renameFile = mutation({
+  args: {
+    internalKey: v.string(),
+    fileId: v.id("files"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    validateInternalKey(args.internalKey);
+    const file = await ctx.db.get(args.fileId);
+    if (!file) {
+      throw new Error("File not found");
+    }
+
+    const siblingFile = await ctx.db
+      .query("files")
+      .withIndex("by_project_parent", (userData) =>
+        userData.eq("projectId", file.projectId).eq("parentId", file.parentId),
+      )
+      .collect();
+
+    const existingFile = siblingFile.find(
+      (file) =>
+        file.name === args.name &&
+        file.type === file.type &&
+        file._id !== args.fileId,
+    );
+    if (existingFile) {
+      throw new Error(`A ${file.type} named "${args.name}" already exists`);
+    }
+
+    await ctx.db.patch(args.fileId, {
+      name: args.name,
+      updatedAt: Date.now(),
+    });
+    return args.fileId;
+  },
+});
+
+export const deleteFile = mutation({
+  args: {
+    internalKey: v.string(),
+    fileId: v.id("files"),
+  },
+  handler: async (ctx, args) => {
+    validateInternalKey(args.internalKey);
+    const file = await ctx.db.get(args.fileId);
+    if (!file) {
+      throw new Error("File not found");
+    }
+
+    const deleteRecursive = async (fileId: Id<"files">) => {
+      const fileById = await ctx.db.get("files", fileId);
+
+      if (!fileById) {
+        return;
+      }
+
+      if (fileById.type === "folder") {
+        const children = await ctx.db
+          .query("files")
+          .withIndex("by_project_parent", (userData) =>
+            userData
+              .eq("projectId", fileById.projectId)
+              .eq("parentId", args.fileId),
+          )
+          .collect();
+        for (const child of children) {
+          await deleteRecursive(child._id);
+        }
+        // Delete storage file if it exists
+        if (fileById.storageId) {
+          await ctx.storage.delete(fileById.storageId);
+        }
+
+        // Delete the file/folder itself
+      }
+      await ctx.db.delete("files", args.fileId);
+    };
+
+    await deleteRecursive(args.fileId);
+
+    return args.fileId;
   },
 });
