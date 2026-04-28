@@ -14,7 +14,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
 import { Id } from "@/convex/_generated/dataModel";
-import { DEFAULT_CONVERSATION_TITLE } from "@/convex/constants";
+import { DEFAULT_CONVERSATION_TITLE } from "@/app/features/conversations/constants";
 import { CopyIcon, HistoryIcon, LoaderIcon, Plus } from "lucide-react";
 import React, { useState } from "react";
 import {

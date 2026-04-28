@@ -93,7 +93,7 @@ export async function POST(request: Request) {
       .replace("{instruction}", instructions)
       .replace("{documentation}", documentationContext);
     const { output } = await generateText({
-      model: google("gemini-2.5-flash"),
+      model: google("gemma-3-12b-it"),
       output: Output.object({ schema: quickEditSchema }),
       prompt,
     });
