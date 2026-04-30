@@ -101,7 +101,7 @@ export const processMessage = inngest.createFunction(
           name: "title-generator",
           description: TITLE_GENERATOR_SYSTEM_PROMPT,
           model: gemini({
-            model: "gemini-1.5-pro",
+            model: "gemini-2.0-flash-lite",
             apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
           }),
           system: TITLE_GENERATOR_SYSTEM_PROMPT,
