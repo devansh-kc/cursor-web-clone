@@ -14,7 +14,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
 import { Id } from "@/convex/_generated/dataModel";
-import { DEFAULT_CONVERSATION_TITLE } from "@/convex/constants";
+import { DEFAULT_CONVERSATION_TITLE } from "@/app/features/conversations/constants";
 import { CopyIcon, HistoryIcon, LoaderIcon, Plus } from "lucide-react";
 import React, { useState } from "react";
 import {
@@ -32,6 +32,7 @@ import {
   MessageResponse,
 } from "@/components/ai-elements/message";
 import { apiFetcher } from "@/utils/api-fetcher-function/api-fetcher-function";
+import { PastConversationDialog } from "./past-conversations-dialog";
 
 interface ConversationSidebarProps {
   projectId: Id<"projects">;
@@ -40,6 +41,7 @@ function ConversationSidebar({
   projectId,
 }: Readonly<ConversationSidebarProps>) {
   const [input, setInput] = useState<string>("");
+  const [openHistory, setOpenHistory] = useState<boolean>(false);
   const [selectedConversationId, setSelectedConversationId] =
     useState<Id<"conversations"> | null>(null);
   const createConversation = useCreateConversation();
@@ -66,8 +68,24 @@ function ConversationSidebar({
     (msg) => msg.status === "processing",
   );
 
+  const handleCancel = async () => {
+    try {
+      await apiFetcher({
+        url: "/api/cancel",
+        timeout: 10000,
+        options: {
+          method: "POST",
+          body: JSON.stringify({ projectId: projectId }),
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to cancel message");
+    }
+  };
   const handleSubmit = async (message: PromptInputMessage) => {
     if (isProcessing && !message.text) {
+      await handleCancel();
       setInput("");
       return;
     }
@@ -98,6 +116,7 @@ function ConversationSidebar({
     }
     setInput("");
   };
+
   return (
     <div className="flex flex-col h-full  bg-sidebar">
       <div className="h-8.75 flex items-center justify-between border-b ">
@@ -105,7 +124,11 @@ function ConversationSidebar({
           {activeConversation?.title ?? DEFAULT_CONVERSATION_TITLE}
         </div>
         <div className="flex items-center px-1 gap-1">
-          <Button size="icon-xs" variant="highlight">
+          <Button
+            size="icon-xs"
+            variant="highlight"
+            onClick={() => setOpenHistory(true)}
+          >
             <HistoryIcon className="size-3.5" />
           </Button>
           <Button
@@ -119,34 +142,40 @@ function ConversationSidebar({
       </div>
       <Conversation className="flex-1">
         <ConversationContent>
-          {conversationMessages?.map((messages, messageIndex) => (
-            <Message key={messages?._id} from={messages?.role}>
-              <MessageContent>
-                {messages?.status === "processing" ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <LoaderIcon className="size-4 animate-spin" />{" "}
-                    <span>Thinking...</span>
-                  </div>
-                ) : (
-                  <MessageResponse>{messages?.content}</MessageResponse>
-                )}
-              </MessageContent>
-              {messages?.role === "assistant" &&
-                messages?.status === "completed" &&
-                messageIndex === (conversationMessages?.length ?? 0) - 1 && (
-                  <MessageActions>
-                    <MessageAction label="copy">
-                      <CopyIcon
+          {conversationMessages?.map((messages, messageIndex) => {
+            return (
+              <Message key={messages?._id} from={messages?.role}>
+                <MessageContent>
+                  {messages.status === "processing" ? (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <LoaderIcon className="size-4 animate-spin" />
+                      <span>Thinking...</span>
+                    </div>
+                  ) : messages.status === "cancelled" ? (
+                    <span className="text-muted-foreground italic">
+                      Request cancelled
+                    </span>
+                  ) : (
+                    <MessageResponse>{messages.content}</MessageResponse>
+                  )}
+                </MessageContent>
+                {messages?.role === "assistant" &&
+                  messages?.status === "completed" &&
+                  messageIndex === (conversationMessages?.length ?? 0) - 1 && (
+                    <MessageActions>
+                      <MessageAction
                         onClick={() =>
                           navigator?.clipboard.writeText(messages?.content)
                         }
-                        className="size-3"
-                      />
-                    </MessageAction>
-                  </MessageActions>
-                )}
-            </Message>
-          ))}
+                        label="copy"
+                      >
+                        <CopyIcon className="size-3" />
+                      </MessageAction>
+                    </MessageActions>
+                  )}
+              </Message>
+            );
+          })}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
@@ -163,12 +192,18 @@ function ConversationSidebar({
           <PromptInputFooter>
             <PromptInputTools />
             <PromptInputSubmit
-              disabled={isProcessing || !input}
+              disabled={isProcessing ? false : !input}
               status={isProcessing ? "streaming" : "ready"}
             />
           </PromptInputFooter>
         </PromptInput>
       </div>
+      <PastConversationDialog
+        projectId={projectId}
+        open={openHistory}
+        onOpenChange={setOpenHistory}
+        onSelect={setSelectedConversationId}
+      />
     </div>
   );
 }

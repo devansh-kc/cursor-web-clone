@@ -34,9 +34,7 @@ export const fetcher = async (
       return null;
     }
     const data = await response.json();
-    console.log("Raw response data:", data);
     const validateResponse = editResponseSchema.parse(data);
-    console.log(validateResponse);
     return validateResponse.editedCode;
   } catch (error) {
     console.log(error);

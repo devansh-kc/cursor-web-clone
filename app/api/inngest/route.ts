@@ -1,7 +1,7 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/inngest/client";
 import { demoGenerate } from "@/inngest/functions";
-import { processMessage } from "@/app/features/inngest/process-message";
+import { processMessage } from "@/app/features/conversations/inngest/process-message";
 
 // Create an API that serves zero functions
 export const { GET, POST, PUT } = serve({

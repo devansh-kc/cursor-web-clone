@@ -1,0 +1,204 @@
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { inngest } from "@/inngest/client";
+import { convex } from "@/lib/convex-client";
+import { NonRetriableError } from "inngest";
+import {
+  CODING_AGENT_SYSTEM_PROMPT,
+  TITLE_GENERATOR_SYSTEM_PROMPT,
+} from "./constants";
+import { DEFAULT_CONVERSATION_TITLE } from "@/app/features/conversations/constants";
+import { createAgent, createNetwork, gemini } from "@inngest/agent-kit";
+import { CreateReadFilesTool } from "./tools/read-files";
+import { createListFilesTool } from "./tools/list-files";
+import { UpdateFilesTool } from "./tools/update-files";
+import { createFilesTool } from "./tools/create-files";
+import { createFolderTool } from "./tools/create-folder";
+import { renameFileTool } from "./rename-file";
+
+interface MessageEvent {
+  messageId: Id<"messages">;
+  conversationId: Id<"conversations">;
+  projectId: Id<"projects">;
+  message: string;
+}
+
+export const processMessage = inngest.createFunction(
+  {
+    id: "process-message",
+    cancelOn: [
+      {
+        event: "message/cancel",
+        if: "event.data.messageId == async.data.messageId",
+      },
+    ],
+    onFailure: async ({ event, step }) => {
+      const { messageId, conversationId, message, projectId } = event.data.event
+        .data as MessageEvent;
+      const internalKey = process.env.CONVEX_INTERNAL_KEY;
+
+      await step.run("update-message-on-failure", async () => {
+        await convex.mutation(api.system.updateMessageContent, {
+          internalKey: internalKey ?? "",
+
+          messageId,
+          content:
+            "My apologies, I encountered an error while processing your request. Let me know ifyou need anything else!",
+        });
+      });
+    },
+  },
+  {
+    event: "message/sent",
+  },
+
+  async ({ event, step }) => {
+    const { messageId, conversationId, projectId, message } = event.data;
+
+    const internalKey = process.env.CONVEX_INTERNAL_KEY;
+    if (!internalKey) {
+      throw new NonRetriableError("Internal key not configured");
+    }
+
+    if (internalKey) {
+      const conversation = await step.run("get-coversations", async () => {
+        return await convex.query(api.system.getConversationById, {
+          internalKey,
+          conversationId,
+        });
+      });
+
+      if (!conversation) throw new NonRetriableError("Conversation not found");
+
+      const getRecentMessage = await step.run(
+        "get-recent-message",
+        async () => {
+          return await convex.query(api.system.getRecentMessages, {
+            internalKey,
+            conversationId,
+            limit: 10,
+          });
+        },
+      );
+      let systemPrompt = CODING_AGENT_SYSTEM_PROMPT;
+
+      const contextMessage = getRecentMessage?.filter(
+        (message) =>
+          message?._id !== messageId && message.content.trim() !== "",
+      );
+      if (contextMessage.length > 0) {
+        // This will show a dialog between a assistant and a user
+        const historyText = contextMessage
+          .map((message) => `${message.role.toUpperCase()}: ${message.content}`)
+          .join("\n\n");
+        systemPrompt += `\n\n## Previous Conversation (for context only - do NOT repeat these responses) : \n${historyText}\n\n## Current Request: \nRespond ONLY to the user's new message below. Do not repeat or reference your previous responses. `;
+      }
+      const shouldGenerateTitle =
+        conversation?.title === DEFAULT_CONVERSATION_TITLE;
+
+      if (shouldGenerateTitle) {
+        const TitleGenerator = createAgent({
+          name: "title-generator",
+          description: TITLE_GENERATOR_SYSTEM_PROMPT,
+          model: gemini({
+            model: "gemini-2.0-flash-lite",
+            apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+          }),
+          system: TITLE_GENERATOR_SYSTEM_PROMPT,
+        });
+        const { output } = await TitleGenerator.run(message, { step });
+        const TextMessage = output.find(
+          (message) => message.type == "text" && message.role === "assistant",
+        );
+        if (TextMessage?.type === "text") {
+          const title =
+            typeof TextMessage.content === "string"
+              ? TextMessage.content?.trim()
+              : TextMessage.content
+                  ?.map((context) => context?.text)
+                  ?.join("")
+                  ?.trim();
+          if (title) {
+            await step.run("update-conversation-title", async () => {
+              await convex.mutation(api.system.updateConversationTitle, {
+                internalKey: internalKey,
+                conversationId,
+                title,
+              });
+            });
+          }
+        }
+      }
+    }
+
+    //  Create the coding agent with file tools
+
+    const codingAgent = createAgent({
+      name: "coding-agent",
+      description:
+        "An Expert Ai Coding assistant  with access to tools to read and write files in the codebase",
+
+      model: gemini({
+        model: "",
+        apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+      }),
+      system: CODING_AGENT_SYSTEM_PROMPT,
+      tools: [
+        createFilesTool({ internalKey, projectId }),
+        UpdateFilesTool({ internalKey }),
+        createListFilesTool({ internalKey, projectId }),
+        CreateReadFilesTool({ internalKey }),
+        createFolderTool({ internalKey, projectId }),
+        renameFileTool({ internalKey }),
+      ],
+    });
+    const codingNetwork = createNetwork({
+      name: "coding_network",
+      agents: [codingAgent],
+      maxIter: 15,
+      router: ({ network }) => {
+        const lastResult = network.state.results.at(-1);
+        const hasTextResponse = lastResult?.output.some(
+          (m) => m.type === "text" && m.role === "assistant",
+        );
+        const hasToolCalls = lastResult?.output.some(
+          (m) => m.type === "tool_call",
+        );
+
+        // Anthropic outputs text AND tool calls together
+        // Only stop if there's text WITHOUT tool calls (final response)
+        if (hasTextResponse && !hasToolCalls) {
+          return undefined;
+        }
+        return codingAgent;
+      },
+    });
+    // Run the agent
+    const result = await codingNetwork.run(message);
+
+    // Extract the assistant's text response from the last agent result
+    const lastResult = result.state.results.at(-1);
+    const textMessage = lastResult?.output.find(
+      (m) => m.type === "text" && m.role === "assistant",
+    );
+
+    let assistantResponse =
+      "I processed your request. Let me know if you need anything else!";
+
+    if (textMessage?.type === "text") {
+      assistantResponse =
+        typeof textMessage.content === "string"
+          ? textMessage.content
+          : textMessage.content.map((c) => c.text).join("");
+    }
+
+    // Update the assistant message with the response (this also sets status to completed)
+    await step.run("update-assistant-message", async () => {
+      await convex.mutation(api.system.updateMessageContent, {
+        internalKey,
+        messageId,
+        content: assistantResponse,
+      });
+    });
+  },
+);
