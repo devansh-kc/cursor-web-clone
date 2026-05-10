@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import FileExplorer from "./file-explorer/file-explorer";
 import EditorView from "../../editor/components/editor-view/editor-view";
+import PreviewView from "../../preview/components/preview-view";
 
 const Tab = ({
   label,
@@ -89,7 +90,7 @@ function ProjectIdView({ projectId }: { projectId: Id<"projects"> }) {
             activeView === "preview" ? "visible" : "invisible",
           )}
         >
-          <div>Preview</div>
+          <PreviewView projectId={projectId} />
         </div>
       </div>
     </div>

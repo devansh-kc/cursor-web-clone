@@ -26,6 +26,7 @@ interface MessageEvent {
 export const processMessage = inngest.createFunction(
   {
     id: "process-message",
+
     cancelOn: [
       {
         event: "message/cancel",
@@ -48,12 +49,9 @@ export const processMessage = inngest.createFunction(
       });
     },
   },
-  {
-    event: "message/sent",
-  },
-
   async ({ event, step }) => {
-    const { messageId, conversationId, projectId, message } = event.data;
+    const { messageId, conversationId, projectId, message } =
+      event.data as MessageEvent;
 
     const internalKey = process.env.CONVEX_INTERNAL_KEY;
     if (!internalKey) {
@@ -139,7 +137,7 @@ export const processMessage = inngest.createFunction(
         "An Expert Ai Coding assistant  with access to tools to read and write files in the codebase",
 
       model: gemini({
-        model: "",
+        model: "gemini-2.0-flash-lite",
         apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
       }),
       system: CODING_AGENT_SYSTEM_PROMPT,

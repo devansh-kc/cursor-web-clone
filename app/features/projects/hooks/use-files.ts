@@ -6,6 +6,10 @@ export function useFile(fileId: Id<"files">) {
   return useQuery(api.files.getFileById, fileId ? { id: fileId } : "skip");
 }
 
+export function useFiles(projectId: Id<"projects"> | null) {
+  return useQuery(api.files.getFiles, projectId ? { projectId } : "skip");
+}
+
 export function useFilePath(fileId: Id<"files">) {
   return useQuery(api.files.getFilePath, fileId ? { fileId: fileId } : "skip");
 }
