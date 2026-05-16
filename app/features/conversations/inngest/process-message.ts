@@ -8,14 +8,13 @@ import {
   TITLE_GENERATOR_SYSTEM_PROMPT,
 } from "./constants";
 import { DEFAULT_CONVERSATION_TITLE } from "@/app/features/conversations/constants";
-import { createAgent, createNetwork, gemini } from "@inngest/agent-kit";
+import { createAgent, createNetwork, gemini, openai } from "@inngest/agent-kit";
 import { CreateReadFilesTool } from "./tools/read-files";
 import { createListFilesTool } from "./tools/list-files";
 import { UpdateFilesTool } from "./tools/update-files";
 import { createFilesTool } from "./tools/create-files";
 import { createFolderTool } from "./tools/create-folder";
 import { renameFileTool } from "./rename-file";
-
 interface MessageEvent {
   messageId: Id<"messages">;
   conversationId: Id<"conversations">;
@@ -48,6 +47,11 @@ export const processMessage = inngest.createFunction(
         });
       });
     },
+    triggers: [
+      {
+        event: "message/sent",
+      },
+    ],
   },
   async ({ event, step }) => {
     const { messageId, conversationId, projectId, message } =
@@ -98,12 +102,24 @@ export const processMessage = inngest.createFunction(
         const TitleGenerator = createAgent({
           name: "title-generator",
           description: TITLE_GENERATOR_SYSTEM_PROMPT,
-          model: gemini({
-            model: "gemini-2.0-flash-lite",
-            apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+
+          model: openai({
+            model: "qwen3.5:2b",
+            baseUrl: "http://localhost:11434/v1",
+            apiKey: "ollama", // ignored by Ollama, but required by the client
           }),
           system: TITLE_GENERATOR_SYSTEM_PROMPT,
         });
+
+        // const TitleGenerator = createAgent({
+        //   name: "title-generator",
+        //   description: TITLE_GENERATOR_SYSTEM_PROMPT,
+        //   model: gemini({
+        //     model: "gemini-1.5-pro",
+        //     apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+        //   }),
+        //   system: TITLE_GENERATOR_SYSTEM_PROMPT,
+        // });
         const { output } = await TitleGenerator.run(message, { step });
         const TextMessage = output.find(
           (message) => message.type == "text" && message.role === "assistant",
@@ -135,11 +151,16 @@ export const processMessage = inngest.createFunction(
       name: "coding-agent",
       description:
         "An Expert Ai Coding assistant  with access to tools to read and write files in the codebase",
-
-      model: gemini({
-        model: "gemini-2.0-flash-lite",
-        apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+      model: openai({
+        // model: "gemma4:e2b",
+        model: "qwen3.5:2b",
+        baseUrl: "http://localhost:11434/v1",
+        apiKey: "ollama", // ignored by Ollama, but required by the client
       }),
+      // model: gemini({
+      //   model: "gemini-2.0-flash-lite",
+      //   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+      // }),
       system: CODING_AGENT_SYSTEM_PROMPT,
       tools: [
         createFilesTool({ internalKey, projectId }),

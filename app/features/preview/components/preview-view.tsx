@@ -1,33 +1,37 @@
-import { Id } from "@/convex/_generated/dataModel";
-import React, { useState } from "react";
-import { useGetProjectById } from "../../projects/hooks/use-project";
-import Usewebcontainers from "../hooks/use-webcontainers";
-import { Button } from "@/components/ui/button";
-import {
-  AlertTriangleIcon,
-  Loader2Icon,
-  RefreshCwIcon,
-  TerminalSquareIcon,
-} from "lucide-react";
-import PreviewSettingsPopover from "./preview-settings-popover";
+"use client";
+
+import { useState } from "react";
 import { Allotment } from "allotment";
+import {
+  Loader2Icon,
+  TerminalSquareIcon,
+  AlertTriangleIcon,
+  RefreshCwIcon,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+
+import { Id } from "../../../../convex/_generated/dataModel";
+import { useGetProjectById } from "../../projects/hooks/use-project";
+import useWebContainer from "../hooks/use-webcontainers";
+import PreviewSettingsPopover from "./preview-settings-popover";
 import PreviewTerminal from "./preview-terminal";
 
-export function PreviewView({
-  projectId,
-}: Readonly<{ projectId: Id<"projects"> }>) {
+export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const project = useGetProjectById(projectId);
   const [showTerminal, setShowTerminal] = useState(true);
+
   const { status, previewUrl, error, restart, terminalOutput } =
-    Usewebcontainers({
+    useWebContainer({
       projectId,
       enabled: true,
       settings: project?.settings,
     });
+
   const isLoading = status === "booting" || status === "installing";
 
   return (
-    <div className="h-full flex flex-col  bg-background">
+    <div className="h-full flex flex-col bg-background">
       <div className="h-8.75 flex items-center border-b bg-sidebar shrink-0">
         <Button
           size="sm"
@@ -40,7 +44,7 @@ export function PreviewView({
           <RefreshCwIcon className="size-3" />
         </Button>
 
-        <div className="flex-1 h-full flex items-center px-3  bg-background text-xs  text-muted-foreground truncate font-mono">
+        <div className="flex-1 h-full flex items-center px-3 bg-background border-x text-xs text-muted-foreground truncate font-mono">
           {isLoading && (
             <div className="flex items-center gap-1.5">
               <Loader2Icon className="size-3 animate-spin" />
@@ -50,6 +54,7 @@ export function PreviewView({
           {previewUrl && <span className="truncate">{previewUrl}</span>}
           {!isLoading && !previewUrl && !error && <span>Ready to preview</span>}
         </div>
+
         <Button
           size="sm"
           variant="ghost"
@@ -65,6 +70,7 @@ export function PreviewView({
           onSave={restart}
         />
       </div>
+
       <div className="flex-1 min-h-0">
         <Allotment vertical>
           <Allotment.Pane>
@@ -80,7 +86,8 @@ export function PreviewView({
                 </div>
               </div>
             )}
-            {isLoading && !error && (
+
+            {isLoading && (
               <div className="size-full flex items-center justify-center text-muted-foreground">
                 <div className="flex flex-col items-center gap-2 max-w-md mx-auto text-center">
                   <Loader2Icon className="size-6 animate-spin" />
@@ -96,23 +103,21 @@ export function PreviewView({
                 title="Preview"
               />
             )}
-
-            {showTerminal && (
-              <Allotment.Pane minSize={100} maxSize={500} preferredSize={200}>
-                <div className="h-full flex flex-col bg-background border-t">
-                  <div className="h-7 flex items-center px-3 text-xs gap-1.5 text-muted-foreground border-b border-border/50 shrink-0">
-                    <TerminalSquareIcon className="size-3" />
-                    Terminal
-                  </div>
-                  <PreviewTerminal output={terminalOutput} />
-                </div>
-              </Allotment.Pane>
-            )}
           </Allotment.Pane>
+
+          {showTerminal && (
+            <Allotment.Pane minSize={100} maxSize={500} preferredSize={200}>
+              <div className="h-full flex flex-col bg-background border-t">
+                <div className="h-7 flex items-center px-3 text-xs gap-1.5 text-muted-foreground border-b border-border/50 shrink-0">
+                  <TerminalSquareIcon className="size-3" />
+                  Terminal
+                </div>
+                <PreviewTerminal output={terminalOutput} />
+              </div>
+            </Allotment.Pane>
+          )}
         </Allotment>
       </div>
     </div>
   );
-}
-
-export default PreviewView;
+};

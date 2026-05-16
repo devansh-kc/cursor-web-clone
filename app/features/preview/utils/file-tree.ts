@@ -2,11 +2,12 @@ import { Doc, Id } from "@/convex/_generated/dataModel";
 import { FileSystemTree } from "@webcontainer/api";
 type FileDoc = Doc<"files">;
 
+const splitName = (name: string): string[] => name.split("/").filter(Boolean);
 export function buildFileTree(files: FileDoc[]): FileSystemTree {
   const tree: FileSystemTree = {};
   const fileMap = new Map(files.map((file) => [file._id, file]));
   const getPath = (file: FileDoc): string[] => {
-    const parts: string[] = [file.name];
+    const parts: string[] = [...splitName(file.name)];
     let parentId = file.parentId;
     while (parentId) {
       const parent = fileMap.get(parentId);
@@ -51,6 +52,8 @@ export const getFilePath = (
   file: FileDoc,
   filesMap: Map<Id<"files">, FileDoc>,
 ) => {
+  console.log("files", file);
+  console.log(filesMap);
   const parts: string[] = [file.name];
   let parentId = file.parentId;
   while (parentId) {

@@ -1,22 +1,23 @@
 import { useEffect, useCallback, useRef, useState } from "react";
-import { useQuery } from "convex/react";
 import { WebContainer } from "@webcontainer/api";
 import { buildFileTree, getFilePath } from "../utils/file-tree";
-import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useFiles } from "../../projects/hooks/use-files";
-import { Container, Files } from "lucide-react";
 
 let webcontainerInstance: WebContainer | null = null;
 let bootingPromise: Promise<WebContainer> | null = null;
 const getWebContainerInstance = async (): Promise<WebContainer> => {
   if (webcontainerInstance) return webcontainerInstance;
-  if (!bootingPromise) {
-    bootingPromise = WebContainer.boot({ coep: "credentialless" });
-  }
+  if (bootingPromise) return bootingPromise; // ← wait for in-progress boot, don't start a new one
 
-  webcontainerInstance = await bootingPromise;
-  return webcontainerInstance;
+  bootingPromise = WebContainer.boot({ coep: "credentialless" }).then(
+    (instance) => {
+      webcontainerInstance = instance;
+      return instance;
+    },
+  );
+
+  return bootingPromise;
 };
 const tearDownWebContainer = () => {
   if (webcontainerInstance) {
@@ -35,7 +36,7 @@ interface UseWebContainerprops {
     devCommand?: string;
   };
 }
-function Usewebcontainers({
+function useWebContainer({
   projectId,
   enabled,
   settings,
@@ -49,10 +50,16 @@ function Usewebcontainers({
   const [terminalOutput, setTerminalOutput] = useState<string>("");
   const containerRef = useRef<WebContainer | null>(null);
   const hasStartedRef = useRef(false);
+  const devProcessRef = useRef<Awaited<
+    ReturnType<WebContainer["spawn"]>
+  > | null>(null);
 
   const files = useFiles(projectId);
-
   // Boot the web container when enabled
+  const onServerReady = (port: number, url: string) => {
+    setPreviewUrl(url);
+    setStatus("running");
+  };
   useEffect(() => {
     if (!enabled || !files || files.length === 0 || hasStartedRef.current)
       return;
@@ -72,10 +79,7 @@ function Usewebcontainers({
 
         const fileTree = buildFileTree(files);
         await container.mount(fileTree);
-        container.on("server-ready", (port, url) => {
-          setPreviewUrl(url);
-          setStatus("running");
-        });
+        container.on("server-ready", onServerReady);
         setStatus("installing");
 
         const installCommand = settings?.installCommand || "npm install";
@@ -86,20 +90,23 @@ function Usewebcontainers({
           installCommandName,
           installCommandArgs,
         );
-        installProcess.output.pipeTo(
-          new WritableStream({
-            write(data) {
-              appendOutput(data);
-            },
-          }),
-        );
+        // Await BOTH the output draining and the exit together
+        const [installExitCode] = await Promise.all([
+          installProcess.exit,
+          installProcess.output.pipeTo(
+            new WritableStream({
+              write(data) {
+                appendOutput(data);
+              },
+            }),
+          ),
+        ]);
 
-        const installExitCode = await installProcess.exit;
         if (installExitCode !== 0) {
           setError("Installation failed. Check terminal output for details.");
           setStatus("error");
           throw new Error(
-            `Installation ${installCommand} failed with exit code ${installExitCode}`,
+            `Installation failed with exit code ${installExitCode}`,
           );
         }
 
@@ -111,6 +118,15 @@ function Usewebcontainers({
           devCommandName,
           devCommandArgs,
         );
+        devProcessRef.current = devProcess;
+
+        devProcess.output.pipeTo(
+          new WritableStream({
+            write(data) {
+              appendOutput(data);
+            },
+          }),
+        );
       } catch (error) {
         console.log("Error booting WebContainer:", error);
         setError("Failed to start the development environment.");
@@ -118,27 +134,32 @@ function Usewebcontainers({
       }
     };
     start();
-  }, [
-    enabled,
-    files,
-    settings?.devCommand,
-    settings?.installCommand,
-    restartKey,
-  ]);
+
+    return () => {
+      // containerRef.current?.off("server-ready", onServerReady);
+      devProcessRef.current?.kill();
+      devProcessRef.current = null;
+    };
+  }, [enabled, settings?.devCommand, settings?.installCommand, restartKey]);
 
   // Sync file changes (hot-reload)
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !files || status !== "running") return;
 
-    const filesMap = new Map(files.map((f) => [f._id, f]));
-
-    for (const file of files) {
-      if (file.type !== "file" || file.storageId || !file.content) continue;
-
-      const filePath = getFilePath(file, filesMap);
-      container.fs.writeFile(filePath, file.content);
-    }
+    const syncFiles = async () => {
+      const filesMap = new Map(files.map((f) => [f._id, f]));
+      for (const file of files) {
+        if (file.type !== "file" || file.storageId || !file.content) continue;
+        const filePath = getFilePath(file, filesMap);
+        try {
+          await container.fs.writeFile(filePath, file.content);
+        } catch (err) {
+          console.warn(`Failed to sync ${filePath}:`, err);
+        }
+      }
+    };
+    syncFiles();
   }, [files, status]);
 
   // Reset when disabled
@@ -170,4 +191,4 @@ function Usewebcontainers({
   };
 }
 
-export default Usewebcontainers;
+export default useWebContainer;
