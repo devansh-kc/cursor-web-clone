@@ -17,17 +17,17 @@ import useWebContainer from "../hooks/use-webcontainers";
 import PreviewSettingsPopover from "./preview-settings-popover";
 import PreviewTerminal from "./preview-terminal";
 
-export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
+export const PreviewView = ({
+  projectId,
+  webContainer,
+}: {
+  projectId: Id<"projects">;
+  webContainer: ReturnType<typeof useWebContainer>;
+}) => {
   const project = useGetProjectById(projectId);
   const [showTerminal, setShowTerminal] = useState(true);
 
-  const { status, previewUrl, error, restart, terminalOutput } =
-    useWebContainer({
-      projectId,
-      enabled: true,
-      settings: project?.settings,
-    });
-
+  const { status, previewUrl, error, restart, terminalOutput } = webContainer;
   const isLoading = status === "booting" || status === "installing";
 
   return (

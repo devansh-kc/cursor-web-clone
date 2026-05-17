@@ -7,6 +7,7 @@ import { FaGithub } from "react-icons/fa";
 import FileExplorer from "./file-explorer/file-explorer";
 import EditorView from "../../editor/components/editor-view/editor-view";
 import { PreviewView } from "../../preview/components/preview-view";
+import useWebContainer from "../../preview/hooks/use-webcontainers";
 
 const Tab = ({
   label,
@@ -32,7 +33,7 @@ const Tab = ({
 
 function ProjectIdView({ projectId }: { projectId: Id<"projects"> }) {
   const [activeView, setActiveView] = useState<"editor" | "preview">("editor");
-
+  const webContainer = useWebContainer({ projectId, enabled: true });
   const MIN_SIDEBAR_WIDTH = 200;
   const MAX_SIDEBAR_WIDTH = 800;
   const DEFAULT_SIDEBAR_WIDTH = 350;
@@ -80,7 +81,10 @@ function ProjectIdView({ projectId }: { projectId: Id<"projects"> }) {
               maxSize={MAX_SIDEBAR_WIDTH}
               preferredSize={DEFAULT_MAIN_SIZE}
             >
-              <EditorView projectId={projectId} />
+              <EditorView
+                projectId={projectId}
+                terminalOutput={webContainer.terminalOutput}
+              />
             </Allotment.Pane>
           </Allotment>
         </div>
@@ -90,7 +94,7 @@ function ProjectIdView({ projectId }: { projectId: Id<"projects"> }) {
             activeView === "preview" ? "visible" : "invisible",
           )}
         >
-          <PreviewView projectId={projectId} />
+          <PreviewView projectId={projectId} webContainer={webContainer} />
         </div>
       </div>
     </div>

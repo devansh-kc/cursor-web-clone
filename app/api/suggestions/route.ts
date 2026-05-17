@@ -1,9 +1,8 @@
 import { generateText, Output } from "ai";
 import { NextResponse } from "next/server";
 import { z as zod } from "zod";
-import { google } from "@ai-sdk/google";
 import { auth } from "@clerk/nextjs/server";
-
+import { createOpenAI, openai } from "@ai-sdk/openai";
 const requestSchema = zod.object({
   suggestion: zod
     .string()
@@ -65,7 +64,10 @@ Maintain the same indentation level as the original.
 Do not include any explanations or comments unless requested.
 If the instruction is unclear or cannot be applied, return the original code unchanged.
 </instructions>`;
-
+const localOllama = createOpenAI({
+  baseURL: "http://localhost:11434/v1",
+  apiKey: "ollama",
+});
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
@@ -95,7 +97,7 @@ export async function POST(req: Request) {
       .replace("{code}", code)
       .replace("{lineNumber}", lineNumber);
     const { output } = await generateText({
-      model: google("gemma-3-12b-it"),
+      model: localOllama("qwen3.5:2b"),
       output: Output.object({ schema: requestSchema }),
       prompt,
     });
