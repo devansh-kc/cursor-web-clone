@@ -23,7 +23,7 @@ interface ProjectCommandDialogProps {
 function ProjectCommandDialog({
   open,
   onOpenChange,
-}: ProjectCommandDialogProps) {
+}: Readonly<ProjectCommandDialogProps>) {
   const projects = useProject();
   const router = useRouter();
   const handleSelectProject = (projectId: string) => {

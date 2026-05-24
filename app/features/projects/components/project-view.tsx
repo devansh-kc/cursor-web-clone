@@ -18,6 +18,7 @@ import {
   uniqueNamesGenerator,
 } from "unique-names-generator";
 import ProjectCommandDialog from "./project-command-dialog";
+import GithubImportPopover from "./github-component/github-import-popover";
 const font = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
@@ -26,6 +27,7 @@ const font = Poppins({
 function ProjectsView() {
   const createProject = useCreateProject();
   const [openCommandDialog, setOpenCommandDialog] = React.useState(false);
+  const [openImportDialog, setImportDialogOpen] = React.useState(false);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "j" && e.ctrlKey) {
@@ -84,7 +86,7 @@ function ProjectsView() {
               </Button>
               <Button
                 variant={"outline"}
-                onClick={() => setOpenCommandDialog(true)}
+                onClick={() => setImportDialogOpen(true)}
                 className="h-full items-start justify-start p-4 bg-background border flex flex-col gap-6 rounded-none"
               >
                 <div className="flex items-center justify-between w-full">
@@ -100,6 +102,10 @@ function ProjectsView() {
           </div>
         </div>
       </div>
+      <GithubImportPopover
+        open={openImportDialog}
+        onOpenChange={setImportDialogOpen}
+      />
       <ProjectCommandDialog
         open={openCommandDialog}
         onOpenChange={setOpenCommandDialog}
