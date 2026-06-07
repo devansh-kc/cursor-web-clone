@@ -8,6 +8,8 @@ import FileExplorer from "./file-explorer/file-explorer";
 import EditorView from "../../editor/components/editor-view/editor-view";
 import { PreviewView } from "../../preview/components/preview-view";
 import useWebContainer from "../../preview/hooks/use-webcontainers";
+import { ExportPopover } from "./github-component/github-export-popover";
+import DeleteProject from "./delete-project";
 
 const Tab = ({
   label,
@@ -52,11 +54,9 @@ function ProjectIdView({ projectId }: { projectId: Id<"projects"> }) {
           isActive={activeView === "preview"}
           onClick={() => setActiveView("preview")}
         />
+        <DeleteProject projectId={projectId} />
         <div className="flex-1 flex justify-end h-full">
-          <div className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30">
-            <FaGithub className="size-3.5" />
-            <span className="text-sm">Export</span>
-          </div>
+          <ExportPopover projectId={projectId} />
         </div>
       </nav>
       <div className="flex-1 relative">

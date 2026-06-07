@@ -63,7 +63,7 @@ export const processMessage = inngest.createFunction(
     }
 
     if (internalKey) {
-      const conversation = await step.run("get-coversations", async () => {
+      const conversation = await step.run("get-conversation", async () => {
         return await convex.query(api.system.getConversationById, {
           internalKey,
           conversationId,

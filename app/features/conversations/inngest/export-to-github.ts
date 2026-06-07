@@ -30,7 +30,7 @@ export const ExportToGithub = inngest.createFunction(
     ],
 
     onFailure: async ({ event, step }) => {
-      const internalKey = process.env.POLARIS_CONVEX_INTERNAL_KEY;
+      const internalKey = process.env.CONVEX_INTERNAL_KEY;
       if (!internalKey) return;
 
       const { projectId } = event.data.event.data as ExportGithubRepoEvent;
@@ -48,7 +48,7 @@ export const ExportToGithub = inngest.createFunction(
   async ({ event, step }) => {
     const { projectId, repoName, visibility, description, githubToken } =
       event.data as ExportGithubRepoEvent;
-    const internalKey = process.env.POLARIS_CONVEX_INTERNAL_KEY;
+    const internalKey = process.env.CONVEX_INTERNAL_KEY;
     if (!internalKey) {
       throw new NonRetriableError("Internal key not configured");
     }
@@ -71,7 +71,6 @@ export const ExportToGithub = inngest.createFunction(
         name: repoName,
         description: description,
         private: visibility === "private",
-        auto_init: true,
       });
     });
 
@@ -90,5 +89,115 @@ export const ExportToGithub = inngest.createFunction(
         return refData.object.sha;
       },
     );
+
+    const files = await step.run("fetch-project-files", async () => {
+      return (await convex.query(api.system.getProjectFilesWithUrls, {
+        internalKey,
+        projectId: projectId as Id<"projects">,
+      })) as FileWithUrl[];
+    });
+
+    const buildFilePath = (file: FileWithUrl[]) => {
+      const fileMap = new Map<Id<"files">, FileWithUrl>();
+      files.forEach((f) => fileMap.set(f._id, f));
+
+      const getFullFilePath = (file: FileWithUrl): string => {
+        if (!file.parentId) {
+          return file.name;
+        }
+        const parent = fileMap.get(file.parentId);
+
+        if (!parent) {
+          return file.name;
+        }
+        return `${getFullFilePath(parent)}/${file.name}`;
+      };
+
+      const paths: Record<string, FileWithUrl> = {};
+      files.forEach((file) => {
+        paths[getFullFilePath(file)] = file;
+      });
+      return paths;
+    };
+    const filePaths = buildFilePath(files);
+    const fileEntries = Object.entries(filePaths).filter(
+      ([, file]) => file.type === "file",
+    );
+
+    if (fileEntries.length === 0) {
+      throw new NonRetriableError("No files to export");
+    }
+
+    const treeItem = await step.run("create-blobs", async () => {
+      const items: {
+        path: string;
+        mode: "100644";
+        type: "blob";
+        sha: string;
+      }[] = [];
+
+      for (const [path, file] of fileEntries) {
+        let content: string;
+        let encoding: "base64" | "utf-8" = "utf-8";
+        if (file.content !== undefined) {
+          content = file.content;
+        } else if (file.storageUrl) {
+          const response = await fetch(file.storageUrl);
+
+          const buffer = Buffer.from(await response.arrayBuffer());
+          content = buffer.toString("base64");
+          encoding = "base64";
+        } else {
+          continue;
+        }
+        const { data: blob } = await octokit.rest.git.createBlob({
+          owner: user.login,
+          repo: repoName,
+          content,
+          encoding,
+        });
+        items.push({
+          path,
+          mode: "100644",
+          type: "blob",
+          sha: blob.sha,
+        });
+
+        return items;
+      }
+    });
+    if (treeItem?.length === 0 || treeItem === null) {
+      throw new NonRetriableError("Failed to create any file blobs");
+    }
+
+    const { data: tree } = await step.run("create-tree", async () => {
+      return await octokit.rest.git.createTree({
+        owner: user.login,
+        repo: repoName,
+        tree: treeItem,
+      });
+    });
+    const { data: commit } = await step.run("create-commit", async () => {
+      return await octokit.rest.git.createCommit({
+        owner: user.login,
+        repo: repoName,
+        message: "Initial commit",
+        tree: tree.sha,
+        parents: [initialCommitSha],
+      });
+    });
+    await step.run("update-branch-ref", async () => {
+      return await octokit.rest.git.updateRef({
+        owner: user.login,
+        repo: repoName,
+        ref: "heads/main",
+        sha: commit.sha,
+      });
+    });
+    return {
+      success: true,
+      repoUrl: repo.html_url,
+      filesExported: treeItem?.length,
+    };
   },
 );

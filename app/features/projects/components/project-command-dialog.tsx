@@ -13,7 +13,7 @@ import {
 import { AlertCircleIcon, GlobeIcon, Loader2Icon } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 
-import { useProject } from "../hooks/use-project";
+import { useProject, useProjects } from "../hooks/use-project";
 import { useRouter } from "next/navigation";
 import { getProjectIcon } from "./get-project-icon";
 interface ProjectCommandDialogProps {
@@ -24,7 +24,7 @@ function ProjectCommandDialog({
   open,
   onOpenChange,
 }: Readonly<ProjectCommandDialogProps>) {
-  const projects = useProject();
+  const projects = useProjects();
   const router = useRouter();
   const handleSelectProject = (projectId: string) => {
     router.push(`/projects/${projectId}`);
