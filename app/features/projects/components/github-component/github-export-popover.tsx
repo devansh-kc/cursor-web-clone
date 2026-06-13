@@ -83,6 +83,17 @@ export const ExportPopover = ({ projectId }: ExportPopoverProps) => {
 
         if (!res.ok) {
           const body = (await res.json()) as { error: string };
+
+          if (body.error?.includes("Pro plan required")) {
+            toast.error("Upgrade to import repositories", {
+              action: {
+                label: "Upgrade",
+                onClick: () => openUserProfile(),
+              },
+            });
+            setOpen(false);
+            return;
+          }
           if (body?.error?.includes("GitHub not connected")) {
             toast.error("GitHub account not connected", {
               action: {

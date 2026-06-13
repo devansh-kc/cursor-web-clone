@@ -43,7 +43,30 @@ function GithubImportPopover({
           },
           body: JSON.stringify({ url: value.url }),
         });
-        console.log(response);
+
+        if (!response.ok) {
+          const body = await response.json();
+          if (body.error?.includes("Pro plan required")) {
+            toast.error("Upgrade to import repositories", {
+              action: {
+                label: "Upgrade",
+                onClick: () => openUserProfile(),
+              },
+            });
+            onOpenChange(false);
+            return;
+          }
+          if (body.error?.includes("GitHub not connected")) {
+            toast.error("GitHub account not connected", {
+              action: {
+                label: "Connect",
+                onClick: () => openUserProfile(),
+              },
+            });
+            onOpenChange(false);
+            return;
+          }
+        }
 
         const data = await response.json();
         console.log(data);

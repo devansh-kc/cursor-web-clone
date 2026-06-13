@@ -9,9 +9,17 @@ const requestSchema = z.object({
   description: z.string().max(350).optional(),
 });
 export async function POST(request: Request) {
-  const { userId } = await auth();
+  const { userId, has } = await auth();
+
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const hasPro = has({ plan: "pro" });
+  if (!hasPro) {
+    return NextResponse.json(
+      { error: "Upgrade to Pro to use this feature" },
+      { status: 403 },
+    );
   }
 
   const body = await request.json();

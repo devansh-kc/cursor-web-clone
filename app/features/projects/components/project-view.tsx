@@ -10,27 +10,45 @@ import { SparkleIcon } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { FaGithub } from "react-icons/fa";
 import ProjectList from "./project-list";
-import { useCreateProject } from "../hooks/use-project";
-import {
-  adjectives,
-  animals,
-  colors,
-  uniqueNamesGenerator,
-} from "unique-names-generator";
 import ProjectCommandDialog from "./project-command-dialog";
 import GithubImportPopover from "./github-component/github-import-popover";
+import NewProjectDialog from "./new-project-dialog/new-project-dialog";
 const font = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
 function ProjectsView() {
-  const createProject = useCreateProject();
+  const [newProjectDialog, setNewProjectDialog] = React.useState(false);
   const [openCommandDialog, setOpenCommandDialog] = React.useState(false);
-  const [openImportDialog, setImportDialogOpen] = React.useState(false);
+  const [openImportDialog, setOpenImportDialog] = React.useState(false);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "j" && e.ctrlKey) {
+        e.preventDefault();
+        setNewProjectDialog(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "o" && e.ctrlKey) {
+        e.preventDefault();
+        setOpenImportDialog(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "k" && e.ctrlKey) {
         e.preventDefault();
         setOpenCommandDialog(true);
       }
@@ -40,6 +58,7 @@ function ProjectsView() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
   return (
     <>
       <div className="min-h-screen bg-sidebar flex flex-col items-center justify-center p-6 md:p-16">
@@ -66,14 +85,7 @@ function ProjectsView() {
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant={"outline"}
-                onClick={() => {
-                  const ProjectName = uniqueNamesGenerator({
-                    dictionaries: [adjectives, colors, animals],
-                    separator: "-",
-                    length: 3,
-                  });
-                  createProject({ name: ProjectName });
-                }}
+                onClick={() => setNewProjectDialog(true)}
                 className="h-full items-start justify-start p-4 bg-background border flex flex-col gap-6 rounded-none"
               >
                 <div className="flex items-center justify-between w-full">
@@ -86,7 +98,7 @@ function ProjectsView() {
               </Button>
               <Button
                 variant={"outline"}
-                onClick={() => setImportDialogOpen(true)}
+                onClick={() => setOpenImportDialog(true)}
                 className="h-full items-start justify-start p-4 bg-background border flex flex-col gap-6 rounded-none"
               >
                 <div className="flex items-center justify-between w-full">
@@ -98,17 +110,21 @@ function ProjectsView() {
                 </div>
               </Button>
             </div>
-            <ProjectList onViewAll={() => {}} />
+            <ProjectList onViewAll={() => setOpenCommandDialog(true)} />
           </div>
         </div>
       </div>
       <GithubImportPopover
         open={openImportDialog}
-        onOpenChange={setImportDialogOpen}
+        onOpenChange={setOpenImportDialog}
       />
       <ProjectCommandDialog
         open={openCommandDialog}
         onOpenChange={setOpenCommandDialog}
+      />
+      <NewProjectDialog
+        onOpenChange={setNewProjectDialog}
+        open={newProjectDialog}
       />
     </>
   );

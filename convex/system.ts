@@ -522,7 +522,6 @@ export const createProject = mutation({
       name: args.name,
       ownerId: args.ownerId,
       updatedAt: Date.now(),
-      importStatus: "importing",
     });
     return projectId;
   },
@@ -533,11 +532,7 @@ export const updateImportStatus = mutation({
     internalKey: v.string(),
     projectId: v.id("projects"),
     importStatus: v.optional(
-      v.union(
-        v.literal("importing"),
-        v.literal("completed"),
-        v.literal("failed"),
-      ),
+      v.union(v.literal("completed"), v.literal("failed")),
     ),
   },
   handler: async (ctx, args) => {
@@ -596,5 +591,33 @@ export const getProjectFilesWithUrls = query({
         return { ...file, storageUrl: null };
       }),
     );
+  },
+});
+
+export const createProjectWithConversation = mutation({
+  args: {
+    internalKey: v.string(),
+    projectName: v.string(),
+    conversationTitle: v.string(),
+    ownerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    validateInternalKey(args.internalKey);
+
+    const now = Date.now();
+
+    const projectId = await ctx.db.insert("projects", {
+      name: args.projectName,
+      ownerId: args.ownerId,
+      updatedAt: now,
+    });
+
+    const conversationId = await ctx.db.insert("conversations", {
+      projectId,
+      title: args.conversationTitle,
+      updatedAt: now,
+    });
+
+    return { projectId, conversationId };
   },
 });
