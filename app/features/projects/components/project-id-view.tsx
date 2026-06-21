@@ -6,6 +6,10 @@ import React, { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import FileExplorer from "./file-explorer/file-explorer";
 import EditorView from "../../editor/components/editor-view/editor-view";
+import { PreviewView } from "../../preview/components/preview-view";
+import useWebContainer from "../../preview/hooks/use-webcontainers";
+import { ExportPopover } from "./github-component/github-export-popover";
+import DeleteProject from "./delete-project";
 
 const Tab = ({
   label,
@@ -31,7 +35,7 @@ const Tab = ({
 
 function ProjectIdView({ projectId }: { projectId: Id<"projects"> }) {
   const [activeView, setActiveView] = useState<"editor" | "preview">("editor");
-
+  const webContainer = useWebContainer({ projectId, enabled: true });
   const MIN_SIDEBAR_WIDTH = 200;
   const MAX_SIDEBAR_WIDTH = 800;
   const DEFAULT_SIDEBAR_WIDTH = 350;
@@ -50,11 +54,9 @@ function ProjectIdView({ projectId }: { projectId: Id<"projects"> }) {
           isActive={activeView === "preview"}
           onClick={() => setActiveView("preview")}
         />
+        <DeleteProject projectId={projectId} />
         <div className="flex-1 flex justify-end h-full">
-          <div className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30">
-            <FaGithub className="size-3.5" />
-            <span className="text-sm">Export</span>
-          </div>
+          <ExportPopover projectId={projectId} />
         </div>
       </nav>
       <div className="flex-1 relative">
@@ -79,7 +81,10 @@ function ProjectIdView({ projectId }: { projectId: Id<"projects"> }) {
               maxSize={MAX_SIDEBAR_WIDTH}
               preferredSize={DEFAULT_MAIN_SIZE}
             >
-              <EditorView projectId={projectId} />
+              <EditorView
+                projectId={projectId}
+                terminalOutput={webContainer.terminalOutput}
+              />
             </Allotment.Pane>
           </Allotment>
         </div>
@@ -89,7 +94,7 @@ function ProjectIdView({ projectId }: { projectId: Id<"projects"> }) {
             activeView === "preview" ? "visible" : "invisible",
           )}
         >
-          <div>Preview</div>
+          <PreviewView projectId={projectId} webContainer={webContainer} />
         </div>
       </div>
     </div>

@@ -35,7 +35,7 @@ export const create = mutation({
  */
 export const getFiles = query({
   args: {
-    fileId: convexServerValues.id("files"),
+    projectId: convexServerValues.id("projects"),
   },
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
@@ -43,22 +43,17 @@ export const getFiles = query({
       return [];
     }
 
-    const fileById = await ctx.db.get("files", args.fileId);
-    if (!fileById) {
+    const projects = await ctx.db.get("projects", args.projectId);
+    if (!projects) {
       throw new Error("File not found");
     }
-    const projectByFileId = await ctx.db.get("projects", fileById?.projectId);
-    if (!projectByFileId) {
-      throw new Error("Project not found");
+    if (projects.ownerId !== identity.subject) {
+      throw new Error("Unauthorized to access this project");
     }
-    if (projectByFileId.ownerId !== identity.subject) {
-      throw new Error("Unauthorized to access this file");
-    }
-
     return await ctx.db
       .query("files")
       .withIndex("by_project", (userData) =>
-        userData.eq("projectId", fileById?.projectId ?? ""),
+        userData.eq("projectId", args?.projectId ?? ""),
       )
       .collect();
   },

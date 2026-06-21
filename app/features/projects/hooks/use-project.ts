@@ -4,9 +4,13 @@ import { useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import React from "react";
 
-export function useProject() {
+export const useProject = (projectId: Id<"projects">) => {
+  return useQuery(api.projects.getProjectById, { id: projectId });
+};
+
+export const useProjects = () => {
   return useQuery(api.projects.get);
-}
+};
 
 export function useProjectPartial(limit: number) {
   return useQuery(api.projects.getPartial, { limit });
@@ -88,3 +92,11 @@ export function useRenameProjectById(projectId: Id<"projects">) {
     },
   );
 }
+
+export const useUpdateProjectSettings = () => {
+  return useMutation(api.projects.updateSettings);
+};
+
+export const useDeleteProject = () => {
+  return useMutation(api.projects.remove);
+};

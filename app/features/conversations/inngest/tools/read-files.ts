@@ -42,7 +42,6 @@ export const CreateReadFilesTool = ({ internalKey }: readFilesProps) => {
               fileId: fileId as Id<"files">,
             });
 
-            console.log(file);
             if (!file) {
               throw new NonRetriableError(`File with ID ${fileId} not found`);
             }

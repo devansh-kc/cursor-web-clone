@@ -1,5 +1,6 @@
 import FireCrawlApp from "@/lib/firecrawl/firecrawl";
 import { google } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import { auth } from "@clerk/nextjs/server";
 import { generateText, Output } from "ai";
 import { NextResponse } from "next/server";
@@ -37,7 +38,10 @@ Maintain the same indentation level as the original.
 Do not include any explanations or comments unless requested.
 If the instruction is unclear or cannot be applied, return the original code unchanged.
 </instructions>`;
-
+const localOllama = createOpenAI({
+  baseURL: "http://localhost:11434/v1",
+  apiKey: "ollama",
+});
 export async function POST(request: Request) {
   try {
     const { userId } = await auth();
@@ -93,10 +97,11 @@ export async function POST(request: Request) {
       .replace("{instruction}", instructions)
       .replace("{documentation}", documentationContext);
     const { output } = await generateText({
-      model: google("gemma-3-12b-it"),
+      model: localOllama("qwen3.5:2b"),
       output: Output.object({ schema: quickEditSchema }),
       prompt,
     });
+
     return NextResponse.json({ editedCode: output.editedCode });
   } catch (error) {
     console.log(error);

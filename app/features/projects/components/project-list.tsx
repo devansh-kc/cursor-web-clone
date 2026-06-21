@@ -1,18 +1,11 @@
 import React from "react";
-import { useCreateProject, useProjectPartial } from "../hooks/use-project";
+import { useProjectPartial } from "../hooks/use-project";
 import { Spinner } from "@/components/ui/spinner";
 import { Kbd } from "@/components/ui/kbd";
 import { Doc } from "@/convex/_generated/dataModel";
 import Link from "next/link";
-import {
-  AlertCircleIcon,
-  ArrowRightIcon,
-  Globe,
-  GlobeIcon,
-  Loader2Icon,
-} from "lucide-react";
+import { ArrowRightIcon } from "lucide-react";
 import { formatDistanceToNow } from "@/utils/date-formator-function/date-formator";
-import { FaGithub } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { getProjectIcon } from "./get-project-icon";
 interface ProjectListProps {
@@ -75,7 +68,10 @@ function ProjectList({ onViewAll }: Readonly<ProjectListProps>) {
             <span className="text-xs text-muted-foreground">
               Recent Projects
             </span>
-            <button className="flex items-center gap-2  text-muted-foreground text-xs hover:text-foreground transition-colors">
+            <button
+              className="flex items-center gap-2  text-muted-foreground text-xs hover:text-foreground transition-colors"
+              onClick={onViewAll}
+            >
               <span>View All</span>
               <Kbd>Ctrl+K</Kbd>
             </button>

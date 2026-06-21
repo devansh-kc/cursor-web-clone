@@ -1,5 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
-import { v as convexServerValues } from "convex/values";
+import { v as convexServerValues, v } from "convex/values";
 
 export default defineSchema({
   projects: defineTable({
@@ -22,6 +22,14 @@ export default defineSchema({
       ),
     ),
     exportRepoUrl: convexServerValues.optional(convexServerValues.string()),
+    settings: convexServerValues.optional(
+      convexServerValues.object({
+        installCommand: convexServerValues.optional(
+          convexServerValues.string(),
+        ),
+        devCommand: convexServerValues.optional(convexServerValues.string()),
+      }),
+    ),
   }).index("by_owner", ["ownerId"]),
 
   files: defineTable({
