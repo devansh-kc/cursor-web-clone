@@ -93,7 +93,7 @@ function ProjectsView() {
                   <Kbd className="bg-accent border">Ctrl+J</Kbd>
                 </div>
                 <div>
-                  <span className="text-sm">New</span>
+                  <span className="text-sm">Create</span>
                 </div>
               </Button>
               <Button
